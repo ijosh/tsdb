@@ -1,4 +1,4 @@
-[TSDB Node.js Driver]
+TSDB Node.js Driver
 =============================
 
 Installation
