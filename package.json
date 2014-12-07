@@ -1,0 +1,27 @@
+{
+  "name": "tsdb",
+  "version": "0.0.1",
+  "description": "The Hildebrand timeseries DB driver for node.js",
+  "keywords": ["tsdb", "database", "timeseries", "time", "series", "time series", "iot", "IoT"],
+  "homepage": "http://tsdb.info",
+  "license": "MIT",
+  "author": {
+	"name": "Joshua Cooper",
+	"email": "jcooper@hildebrand.co.uk"
+  },
+  "dependencies" : {
+                "redis" : "0.12.1",
+		"request" : "2.47.0"
+  },
+  "main": "index.js",
+  "scripts" : {
+        "test": "tsdb"
+  },
+  "engines": {
+     "node": "0.10.*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ijosh/tsdb.js.git"
+  }
+}
