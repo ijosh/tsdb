@@ -9,7 +9,7 @@ var request = require('request'),
 	port = 80,
 	version = 'v1',
 	token = '',
-    default_period = 'hour',
+        default_period = 'hour',
 	query = '';
 
 exports.debug_mode = false;
@@ -19,6 +19,10 @@ exports.debug_mode = false;
 // TSDB client that will get timeseries data
 function TSDBClient(data, options) {
 
+    if ( options.token.toString().length !== 34 ) {
+        throw new Error("A valid 34-byte token must be supplied");
+    }
+        token = options.token;
 	this.data = data;
 	this.options = options = options || {};
 
@@ -74,8 +78,14 @@ var send_query = function (method, path, params, callback) {
 
     if(method == "GET") { 
 
-        url = url + "/" + params.tid + "?token=" + params.timeseries.token + "&" + params.queryparams;
-        //console.log(url);
+        url = url + "/" + params.tid + "?token=" + token;
+	if(params.queryparams) {
+		url = url + "&" + params.queryparams;
+	}
+        if(params.to && params.from) {
+		url = url + "&toDate=" + params.to + "&fromDate=" + params.from;
+	}
+        console.log(url);
         
         request(url, function(err, httpResponse, body) {
             if(err) {
@@ -88,7 +98,7 @@ var send_query = function (method, path, params, callback) {
     if(method == "POST") {
 
         if(params.token) {
-            url = url + "?token=" + params.token + "&" + params.queryparams;
+            url = url + "?token=" + token + "&" + params.queryparams;
         }
         
         request.post({ url: url, body: params, json: true }, function(err, httpResponse, body) {
@@ -101,7 +111,7 @@ var send_query = function (method, path, params, callback) {
     };
     if(method == "PUT") { 
 
-        url = url + "/" + params.tid + "?token=" + params.timeseries.token + "&" + params.queryparams;
+        url = url + "/" + params.tid + "?token=" + token + "&" + params.queryparams;
         //console.log(url);
         //console.log(params.data);
         

@@ -10,13 +10,15 @@ var ts = {
      regular: 'false',
      start: '2014-01-06T00:00:00+00:00',
      token: 'AAeb60c291291e2223798af30b996d8d3b' },
-  url: '/ts/tid/AAf6f2c7805f1b831cfdac15efdae22515' 
+  url: '/ts/tid/AAf6f2c7805f1b831cfdac15efdae22515',
+  to: '2014-12-06T00:47:00+00:00',
+  from: '2014-12-06T00:00:00+00:00'
 };
 
 
-var mytsdb = tsdb.connectTSDB({}, {});
+var mytsdb = tsdb.connectTSDB({}, { token: 'AAeb60c291291e2223798af30b996d8d3b' });
 
-console.log(mytsdb);
+//console.log(mytsdb);
 
 mytsdb.read(ts, function(err, data) {
 
