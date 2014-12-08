@@ -9,6 +9,7 @@ var request = require('request'),
 	port = 80,
 	version = 'v1',
 	token = '',
+    default_period = 'hour',
 	query = '';
 
 exports.debug_mode = false;
@@ -58,8 +59,8 @@ var send_query = function (method, path, params, callback) {
 
     if(method == "GET") { 
 
-        url = url + "/" + params.tid + "?token=" + params.timeseries.token;
-        console.log(url);
+        url = url + "/" + params.tid + "?token=" + params.timeseries.token + "&" + params.queryparams;
+        //console.log(url);
         
         request(url, function(err, httpResponse, body) {
             if(err) {
@@ -70,6 +71,10 @@ var send_query = function (method, path, params, callback) {
     };
 
     if(method == "POST") {
+
+        if(params.token) {
+            url = url + "?token=" + params.token;
+        }
         
         request.post({ url: url, body: params, json: true }, function(err, httpResponse, body) {
             if(err) {
@@ -82,8 +87,8 @@ var send_query = function (method, path, params, callback) {
     if(method == "PUT") { 
 
         url = url + "/" + params.tid + "?token=" + params.timeseries.token;
-        console.log(url);
-        console.log(params.data);
+        //console.log(url);
+        //console.log(params.data);
         
         request.put({ url: url, body: params.data, json: true }, function(err, httpResponse, body) {
             if(err) {
@@ -96,6 +101,7 @@ var send_query = function (method, path, params, callback) {
 
 };
 
+
 // Create
 exports.create = function (options, callback) {
     console.log(options);
@@ -106,9 +112,10 @@ exports.create = function (options, callback) {
     });
 };
 
+
 // Read
 exports.read = function (options, callback) {
-    console.log(options);
+    //console.log(options);
     send_query("GET", "/ts/tid", options, function(err, ts) {
     
         callback(err, ts);
@@ -116,13 +123,107 @@ exports.read = function (options, callback) {
     });
 };
 
+
 // Update
 exports.update = function (options, data, callback) {
     options.data = data;
-    console.log(JSON.stringify(options));
+    //console.log(JSON.stringify(options));
     send_query("PUT", "/ts/tid", options, function(err, newts) {
     
         callback(err, newts);
         
     });
 };
+
+
+
+// Aggregates
+exports.min = function (options, callback) {
+
+    options.queryparams = "aggregate=min&cal=" + default_period;
+    //console.log(options);
+    send_query("GET", "/ts/tid", options, function(err, ts) {
+    
+        callback(err, ts);
+        
+    });
+};
+
+exports.max = function (options, callback) {
+
+    options.queryparams = "aggregate=max&cal=" + default_period;
+    //console.log(options);
+    send_query("GET", "/ts/tid", options, function(err, ts) {
+    
+        callback(err, ts);
+        
+    });
+};
+
+exports.sum = function (options, callback) {
+
+    options.queryparams = "aggregate=sum&cal=" + default_period;
+    //console.log(options);
+    send_query("GET", "/ts/tid", options, function(err, ts) {
+    
+        callback(err, ts);
+        
+    });
+};
+
+exports.avg = function (options, callback) {
+
+    options.queryparams = "aggregate=avg&cal=" + default_period;
+    //console.log(options);
+    send_query("GET", "/ts/tid", options, function(err, ts) {
+    
+        callback(err, ts);
+        
+    });
+};
+
+exports.median = function (options, callback) {
+
+    options.queryparams = "aggregate=median&cal=" + default_period;
+    //console.log(options);
+    send_query("GET", "/ts/tid", options, function(err, ts) {
+    
+        callback(err, ts);
+        
+    });
+};
+
+exports.first = function (options, callback) {
+
+    options.queryparams = "aggregate=first&cal=" + default_period;
+    //console.log(options);
+    send_query("GET", "/ts/tid", options, function(err, ts) {
+    
+        callback(err, ts);
+        
+    });
+};
+
+exports.last = function (options, callback) {
+
+    options.queryparams = "aggregate=last&cal=" + default_period;
+    //console.log(options);
+    send_query("GET", "/ts/tid", options, function(err, ts) {
+    
+        callback(err, ts);
+        
+    });
+};
+
+exports.variance = function (options, callback) {
+
+    options.queryparams = "aggregate=variance&cal=" + default_period;
+    //console.log(options);
+    send_query("GET", "/ts/tid", options, function(err, ts) {
+    
+        callback(err, ts);
+        
+    });
+};
+
+
