@@ -10,8 +10,9 @@
 	"email": "jcooper@hildebrand.co.uk"
   },
   "dependencies" : {
-                "redis" : "0.12.1",
-		"request" : "2.47.0"
+		"request" : "2.47.*",
+		"events": "1.0.*",
+		"util": "0.10.*"
   },
   "main": "index.js",
   "scripts" : {
