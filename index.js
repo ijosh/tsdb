@@ -1,4 +1,4 @@
-// Hildebrand Timeseries storage driver
+// Hildebrand Timeseries data access driver
 
 
 var request = require('request'),
@@ -14,8 +14,9 @@ var request = require('request'),
 
 exports.debug_mode = false;
 
-// Constructor
+// Constructors
 
+// TSDB client that will get timeseries data
 function TSDBClient(data, options) {
 
 	this.data = data;
@@ -30,6 +31,20 @@ function TSDBClient(data, options) {
 util.inherits(TSDBClient, events.EventEmitter);
 exports.TSDBClient = TSDBClient;
 
+// Energyhive client that will get timeseries data
+function EHClient(data, options) {
+
+    this.data = data;
+    this.options = options = options || {};
+
+    var self = this;
+
+    events.EventEmitter.call(this);
+
+};
+
+util.inherits(EHClient, events.EventEmitter);
+exports.EHClient = EHClient;
 
 // Makes things easier to see in debug
 function Query(method, path, params, callback) {
@@ -38,7 +53,7 @@ function Query(method, path, params, callback) {
     this.callback = callback;
 };
 
-// Private method that will make the API requests and assemble parameters
+// Private method that will make the API requests to TSDB and assemble parameters
 var send_query = function (method, path, params, callback) {
 
     if ( method.toString() !== "GET" && method.toString() !== "POST" && method.toString() !== "PUT" ) {
@@ -73,7 +88,7 @@ var send_query = function (method, path, params, callback) {
     if(method == "POST") {
 
         if(params.token) {
-            url = url + "?token=" + params.token;
+            url = url + "?token=" + params.token + "&" + params.queryparams;
         }
         
         request.post({ url: url, body: params, json: true }, function(err, httpResponse, body) {
@@ -86,7 +101,7 @@ var send_query = function (method, path, params, callback) {
     };
     if(method == "PUT") { 
 
-        url = url + "/" + params.tid + "?token=" + params.timeseries.token;
+        url = url + "/" + params.tid + "?token=" + params.timeseries.token + "&" + params.queryparams;
         //console.log(url);
         //console.log(params.data);
         
@@ -102,8 +117,16 @@ var send_query = function (method, path, params, callback) {
 };
 
 
-// Create
-exports.create = function (options, callback) {
+exports.connectEH = function(options, callback) {
+    return new EHClient(options, callback);
+}
+
+exports.connectTSDB = function(options, callback) {
+    return new TSDBClient(options, callback);
+}
+
+// Create ONLY valid for TSDB service, not energyhive
+TSDBClient.prototype.create = function (options, callback) {
     console.log(options);
     send_query("POST", "/ts", options, function(err, newts) {
     
@@ -114,18 +137,24 @@ exports.create = function (options, callback) {
 
 
 // Read
-exports.read = function (options, callback) {
+TSDBClient.prototype.read = function (options, callback) {
     //console.log(options);
     send_query("GET", "/ts/tid", options, function(err, ts) {
     
-        callback(err, ts);
+        this.data = JSON.parse(ts).data;
+        callback(err, this.data);
         
     });
 };
 
 
 // Update
-exports.update = function (options, data, callback) {
+TSDBClient.prototype.update = function (options, data, callback) {
+    // Hope they don't mix epoch and human readable timestamps
+    if(parseInt(data[0].t)) {
+        options.queryparams = "format=epoch";
+    }
+
     options.data = data;
     //console.log(JSON.stringify(options));
     send_query("PUT", "/ts/tid", options, function(err, newts) {
@@ -138,92 +167,90 @@ exports.update = function (options, data, callback) {
 
 
 // Aggregates
-exports.min = function (options, callback) {
+TSDBClient.prototype.min = function (options, callback) {
 
     options.queryparams = "aggregate=min&cal=" + default_period;
     //console.log(options);
     send_query("GET", "/ts/tid", options, function(err, ts) {
     
-        callback(err, ts);
+        this.data = JSON.parse(ts).data;
+        callback(err, this.data);
         
     });
 };
 
-exports.max = function (options, callback) {
+TSDBClient.prototype.max = function (options, callback) {
 
     options.queryparams = "aggregate=max&cal=" + default_period;
     //console.log(options);
     send_query("GET", "/ts/tid", options, function(err, ts) {
     
-        callback(err, ts);
+        this.data = JSON.parse(ts).data;
+        callback(err, this.data);
         
     });
 };
 
-exports.sum = function (options, callback) {
+TSDBClient.prototype.sum = function (options, callback) {
 
     options.queryparams = "aggregate=sum&cal=" + default_period;
     //console.log(options);
     send_query("GET", "/ts/tid", options, function(err, ts) {
     
-        callback(err, ts);
+        this.data = JSON.parse(ts).data;
+        callback(err, this.data);
         
     });
 };
 
-exports.avg = function (options, callback) {
+TSDBClient.prototype.avg = function (options, callback) {
 
     options.queryparams = "aggregate=avg&cal=" + default_period;
     //console.log(options);
     send_query("GET", "/ts/tid", options, function(err, ts) {
     
-        callback(err, ts);
+        this.data = JSON.parse(ts).data;
+        callback(err, this.data);
         
     });
 };
 
-exports.median = function (options, callback) {
+TSDBClient.prototype.median = function (options, callback) {
 
     options.queryparams = "aggregate=median&cal=" + default_period;
     //console.log(options);
     send_query("GET", "/ts/tid", options, function(err, ts) {
     
-        callback(err, ts);
+        this.data = JSON.parse(ts).data;
+        callback(err, this.data);
         
     });
 };
 
-exports.first = function (options, callback) {
+TSDBClient.prototype.first = function (options, callback) {
 
     options.queryparams = "aggregate=first&cal=" + default_period;
     //console.log(options);
     send_query("GET", "/ts/tid", options, function(err, ts) {
     
-        callback(err, ts);
+        this.data = JSON.parse(ts).data;
+        callback(err, this.data);
         
     });
 };
 
-exports.last = function (options, callback) {
+TSDBClient.prototype.last = function (options, callback) {
 
     options.queryparams = "aggregate=last&cal=" + default_period;
     //console.log(options);
     send_query("GET", "/ts/tid", options, function(err, ts) {
     
-        callback(err, ts);
+        this.data = JSON.parse(ts).data;
+        callback(err, this.data);
         
     });
 };
 
-exports.variance = function (options, callback) {
 
-    options.queryparams = "aggregate=variance&cal=" + default_period;
-    //console.log(options);
-    send_query("GET", "/ts/tid", options, function(err, ts) {
-    
-        callback(err, ts);
-        
-    });
-};
 
 

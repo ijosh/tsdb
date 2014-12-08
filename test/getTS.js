@@ -14,11 +14,15 @@ var ts = {
 };
 
 
+var mytsdb = tsdb.connectTSDB({}, {});
 
-tsdb.read(ts, function(err, data) {
+console.log(mytsdb);
 
-        if(!err) {
-	   console.log(data)
+mytsdb.read(ts, function(err, data) {
+
+  //this.data = data;
+  if(!err) {
+	   console.log(this)
 	} else {
 	   console.log("Error: " + err);
 	}
