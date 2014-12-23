@@ -4,12 +4,14 @@
 var request = require('request'),
     util = require('util'),
 	events = require('events'),
+    timeparse = require('./timeparse'),
 	//constants = require('./lib/constants'),
 	host = 'tsdb.info',
 	port = 80,
 	version = 'v1',
-	token = '',
-        default_period = 'hour',
+	token = null,
+    default_period = 'hour',
+    default_time_offset,
 	query = '';
 
 exports.debug_mode = false;
@@ -17,13 +19,35 @@ exports.debug_mode = false;
 // Constructors
 
 // TSDB client that will get timeseries data
-function TSDBClient(data, options) {
+function TSDBClient(options) {
+
+    console.log(options);
 
     if ( options.token.toString().length !== 34 ) {
         throw new Error("A valid 34-byte token must be supplied");
     }
-        token = options.token;
-	this.data = data;
+
+    token = options.token;
+
+    if ( options.host ) {
+        host = options.host;
+    }
+
+    if ( options.port ) {
+        port = options.port;
+    }
+
+    if ( parseInt(options.to,10) == false) {
+        options.to = new Date(options.to);
+    }
+
+    if ( parseInt(options.from,10) == false) {
+        options.from = new Date(options.from);
+    }
+
+    this.version = version;
+
+	this.data = '';
 	this.options = options = options || {};
 
 	var self = this;
@@ -35,20 +59,49 @@ function TSDBClient(data, options) {
 util.inherits(TSDBClient, events.EventEmitter);
 exports.TSDBClient = TSDBClient;
 
-// Energyhive client that will get timeseries data
-function EHClient(data, options) {
 
-    this.data = data;
+// Energyhive client inherits parent TSDBClient
+function EHClient(options) {
+    //TSDBClient.apply(this, Array.prototype.slice.call(options));
+
+    if ( options.token.toString().length !== 32 ) {
+        throw new Error("A valid 32-byte token must be supplied");
+    }
+
+    var d = new Date()
+    default_time_offset = d.getTimezoneOffset();
+
+    token = options.token;
+    host = 'www.energyhive.com';
+    port = '80';
+
+    if ( options.host ) {
+        host = options.host;
+    }
+
+    if ( options.port ) {
+        port = options.port;
+    }
+
+    this.version = version;
+   
+    console.log(options);
+    //this.data = data;
     this.options = options = options || {};
 
     var self = this;
 
-    events.EventEmitter.call(this);
+    events.EventEmitter.call(this);    
+}
 
-};
+util.inherits(EHClient, TSDBClient);
 
-util.inherits(EHClient, events.EventEmitter);
-exports.EHClient = EHClient;
+//EHClient.prototype = new TSDBClient();
+//EHClient.prototype.constructor=EHClient;
+
+
+//util.inherits(EHClient, events.EventEmitter);
+//exports.EHClient = EHClient;
 
 // Makes things easier to see in debug
 function Query(method, path, params, callback) {
@@ -74,22 +127,48 @@ var send_query = function (method, path, params, callback) {
 
     query_obj = new Query(method, path, params, callback);
 
-    var url = "http://" + host + ":" + port + "/" + version + path;
+    var url = "http://" + host + ":" + port;
 
-    if(method == "GET") { 
+    if(version) {
+        url = url + "/" + version;
+    }
 
-        url = url + "/" + params.tid + "?token=" + token;
-	if(params.queryparams) {
-		url = url + "&" + params.queryparams;
-	}
-        if(params.to && params.from) {
-		url = url + "&toDate=" + params.to + "&fromDate=" + params.from;
-	}
+    if(path) {
+        url = url + path;
+    }
+
+    if(method == "GET") {
+
+        if(params.tid) {
+            url = url + "/" + params.tid;
+        } 
+
+        url = url + "?token=" + token;
+
+    	if(params.queryparams) {
+    		url = url + "&" + params.queryparams;
+    	}
+
+        if(params.to && params.from && (params.tid)) {
+		    url = url + "&toDate=" + params.to + "&fromDate=" + params.from;
+	    }
+
+        if(params.to && params.from && (params.sid)) {
+            url = url + "&toTime=" + params.to + "&fromTime=" + params.from;
+        }
+
+        if(params.period && params.func) {
+            url = url + "&aggPeriod=" + params.period + "&aggFunc=" + params.func;
+        }
+
+        url = url + "&offset=" + default_time_offset;
+
+        console.log(params);
         console.log(url);
         
         request(url, function(err, httpResponse, body) {
             if(err) {
-                callback(err, url);
+                callback(err, null);
             }
             callback(null,body);
         });
@@ -127,16 +206,19 @@ var send_query = function (method, path, params, callback) {
 };
 
 
-exports.connectEH = function(options, callback) {
-    return new EHClient(options, callback);
+
+
+exports.connectEH = function(options) {
+    return new EHClient(options);
 }
 
-exports.connectTSDB = function(options, callback) {
-    return new TSDBClient(options, callback);
+exports.connectTSDB = function(options) {
+    console.log(options);
+    return new TSDBClient(options);
 }
 
 // Create ONLY valid for TSDB service, not energyhive
-TSDBClient.prototype.create = function (options, callback) {
+exports.createTSDB = function (options, callback) {
     console.log(options);
     send_query("POST", "/ts", options, function(err, newts) {
     
@@ -146,12 +228,44 @@ TSDBClient.prototype.create = function (options, callback) {
 };
 
 
+
+
 // Read
 TSDBClient.prototype.read = function (options, callback) {
-    //console.log(options);
+
     send_query("GET", "/ts/tid", options, function(err, ts) {
-    
-        this.data = JSON.parse(ts).data;
+
+        this.data = {};
+
+        if(ts) {
+            this.data = JSON.parse(ts).data
+        }
+
+        callback(err, this.data);
+        
+    });
+};
+
+// Read
+EHClient.prototype.read = function (options, callback) {
+    //console.log(options);
+
+    options.to = timeparse.parse(options.to).getTime()/1000;
+    options.from = timeparse.parse(options.from).getTime()/1000;
+
+    options.period = "hour";
+    options.func = "avg";
+
+    version = null;
+    send_query("GET", "/mobile_proxy/getTimeSeries", options, function(err, ts) {
+
+        this.data = {};
+        console.log(ts);
+
+        if(ts) {
+            this.data = JSON.parse(ts).data
+        }
+
         callback(err, this.data);
         
     });
