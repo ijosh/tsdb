@@ -16,7 +16,7 @@ var myeh = tsdb.connectEH(ehtoken);
 myeh.read(tseh, function(err, data) {
 
 	if(!err) {
-		//console.log(data);
+		//console.log(myeh._kv());
 		console.log("Min: " + myeh.min());
 		console.log("Max: " + myeh.max());
 		console.log("Sum: " + myeh.sum());

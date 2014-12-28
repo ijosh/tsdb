@@ -12,7 +12,8 @@ var request = require('request'),
 	version = 'v1',
 	token = null,
     values = new Array(),           // values from the return data
-    kv,                             // keys and values from the return data
+    keys = new Array(),             // keys from the return data (Epoch time in seconds)
+    kv = new Array(),               // keys and values as a 2-D array
     default_period = 'hour',
     default_func = 'avg',
     default_time_offset,
@@ -262,6 +263,8 @@ EHClient.prototype.read = function (options, callback) {
             for (ld in returned_data) {
                 if(returned_data[ld] != 'undef') {
                    values.push(returned_data[ld][0]); 
+                   keys.push(ld/1000);
+                   kv.push([+ld/1000, returned_data[ld][0]]);
                 }  
             }
         }
@@ -270,6 +273,16 @@ EHClient.prototype.read = function (options, callback) {
         
     });
 };
+
+// Accessors - 
+TSDBClient.prototype._values = function () {
+    return values;
+};
+
+TSDBClient.prototype._kv = function () {
+    return kv;
+};
+
 
 
 // Update TSDB ONLY
@@ -426,6 +439,24 @@ EHClient.prototype.sample_skewness = function () {
     return ss.sample_skewness(values);
 };
 
+EHClient.prototype.line = function (pt) {
+    var line = ss.linear_regression()
+    .data(kv)
+    .line();
+    return line(pt);
+};
+
+EHClient.prototype.slope = function () {
+    return ss.linear_regression()
+    .data(kv)
+    .m();
+};
+
+EHClient.prototype.intercept = function () {
+    return ss.linear_regression()
+    .data(kv)
+    .b();
+};
 
 
 

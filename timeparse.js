@@ -2,7 +2,7 @@ function Timeparse(timething) {
 
 	// try and take the timething and turn it into a Date object
 	// then return a Date object or an error
-	console.log(timething);
+	//console.log(timething);
 
 		if(typeof timething == "string" || typeof timething == "object") {
 			// try to parse the date like 2014-12-06T00:47:00+00:00
@@ -14,7 +14,7 @@ function Timeparse(timething) {
 			//console.log(dateparts);
 			//console.log(new Date(dateparts[0], dateparts[1]-1, dateparts[2], timeparts[0], timeparts[1], seconds[0]));
 
-			return new Date(dateparts[0], dateparts[1], dateparts[2], timeparts[0], timeparts[1], seconds[0]); 
+			return new Date(dateparts[0], dateparts[1]-1, dateparts[2], timeparts[0], timeparts[1], seconds[0]); 
 			
 		} else {
 			// try to treat as an millisecond integer Epoch and divide by 1000
