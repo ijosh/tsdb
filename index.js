@@ -4,13 +4,17 @@
 var request = require('request'),
     util = require('util'),
 	events = require('events'),
+    ss = require('simple-statistics'),
     timeparse = require('./timeparse'),
 	//constants = require('./lib/constants'),
 	host = 'tsdb.info',
 	port = 80,
 	version = 'v1',
 	token = null,
+    values = new Array(),           // values from the return data
+    kv,                             // keys and values from the return data
     default_period = 'hour',
+    default_func = 'avg',
     default_time_offset,
 	query = '';
 
@@ -46,8 +50,6 @@ function TSDBClient(options) {
     }
 
     this.version = version;
-
-	this.data = '';
 	this.options = options = options || {};
 
 	var self = this;
@@ -84,9 +86,6 @@ function EHClient(options) {
     }
 
     this.version = version;
-   
-    console.log(options);
-    //this.data = data;
     this.options = options = options || {};
 
     var self = this;
@@ -95,13 +94,6 @@ function EHClient(options) {
 }
 
 util.inherits(EHClient, TSDBClient);
-
-//EHClient.prototype = new TSDBClient();
-//EHClient.prototype.constructor=EHClient;
-
-
-//util.inherits(EHClient, events.EventEmitter);
-//exports.EHClient = EHClient;
 
 // Makes things easier to see in debug
 function Query(method, path, params, callback) {
@@ -157,8 +149,16 @@ var send_query = function (method, path, params, callback) {
             url = url + "&toTime=" + params.to + "&fromTime=" + params.from;
         }
 
-        if(params.period && params.func) {
-            url = url + "&aggPeriod=" + params.period + "&aggFunc=" + params.func;
+        if(params.period) {
+            url = url + "&aggPeriod=" + params.period;
+        } else {
+            url = url + "&aggPeriod=" + default_period;
+        }
+
+        if(params.func) {
+            url = url + "&aggFunc=" + params.func;
+        } else {
+            url = url + "&aggFunc=" + default_func;
         }
 
         url = url + "&offset=" + default_time_offset;
@@ -206,14 +206,11 @@ var send_query = function (method, path, params, callback) {
 };
 
 
-
-
 exports.connectEH = function(options) {
     return new EHClient(options);
 }
 
 exports.connectTSDB = function(options) {
-    console.log(options);
     return new TSDBClient(options);
 }
 
@@ -228,9 +225,7 @@ exports.createTSDB = function (options, callback) {
 };
 
 
-
-
-// Read
+// Read TSDB
 TSDBClient.prototype.read = function (options, callback) {
 
     send_query("GET", "/ts/tid", options, function(err, ts) {
@@ -238,7 +233,7 @@ TSDBClient.prototype.read = function (options, callback) {
         this.data = {};
 
         if(ts) {
-            this.data = JSON.parse(ts).data
+            this.data = JSON.parse(ts).data;
         }
 
         callback(err, this.data);
@@ -246,33 +241,38 @@ TSDBClient.prototype.read = function (options, callback) {
     });
 };
 
-// Read
+// Read energyhive
 EHClient.prototype.read = function (options, callback) {
     //console.log(options);
 
     options.to = timeparse.parse(options.to).getTime()/1000;
     options.from = timeparse.parse(options.from).getTime()/1000;
 
-    options.period = "hour";
-    options.func = "avg";
+    //options.period = "hour";
+    //options.func = "avg";
 
     version = null;
     send_query("GET", "/mobile_proxy/getTimeSeries", options, function(err, ts) {
 
-        this.data = {};
-        console.log(ts);
+        //this.data = new Array();
+        //console.log(ts);
 
         if(ts) {
-            this.data = JSON.parse(ts).data
+            var returned_data = JSON.parse(ts).data;
+            for (ld in returned_data) {
+                if(returned_data[ld] != 'undef') {
+                   values.push(returned_data[ld][0]); 
+                }  
+            }
         }
 
-        callback(err, this.data);
+        callback(err, values);
         
     });
 };
 
 
-// Update
+// Update TSDB ONLY
 TSDBClient.prototype.update = function (options, data, callback) {
     // Hope they don't mix epoch and human readable timestamps
     if(parseInt(data[0].t)) {
@@ -289,8 +289,7 @@ TSDBClient.prototype.update = function (options, data, callback) {
 };
 
 
-
-// Aggregates
+// Aggregates - polymorphic (not exactly yet)
 TSDBClient.prototype.min = function (options, callback) {
 
     options.queryparams = "aggregate=min&cal=" + default_period;
@@ -301,6 +300,10 @@ TSDBClient.prototype.min = function (options, callback) {
         callback(err, this.data);
         
     });
+};
+
+EHClient.prototype.min = function () {
+    return ss.min(values);
 };
 
 TSDBClient.prototype.max = function (options, callback) {
@@ -315,6 +318,10 @@ TSDBClient.prototype.max = function (options, callback) {
     });
 };
 
+EHClient.prototype.max = function () {
+    return ss.max(values);
+};
+
 TSDBClient.prototype.sum = function (options, callback) {
 
     options.queryparams = "aggregate=sum&cal=" + default_period;
@@ -327,7 +334,11 @@ TSDBClient.prototype.sum = function (options, callback) {
     });
 };
 
-TSDBClient.prototype.avg = function (options, callback) {
+EHClient.prototype.sum = function () {
+    return ss.sum(values);
+};
+
+TSDBClient.prototype.mean = function (options, callback) {
 
     options.queryparams = "aggregate=avg&cal=" + default_period;
     //console.log(options);
@@ -337,6 +348,10 @@ TSDBClient.prototype.avg = function (options, callback) {
         callback(err, this.data);
         
     });
+};
+
+EHClient.prototype.mean = function () {
+    return ss.mean(values);
 };
 
 TSDBClient.prototype.median = function (options, callback) {
@@ -349,6 +364,10 @@ TSDBClient.prototype.median = function (options, callback) {
         callback(err, this.data);
         
     });
+};
+
+EHClient.prototype.median = function () {
+    return ss.median(values);
 };
 
 TSDBClient.prototype.first = function (options, callback) {
@@ -374,6 +393,43 @@ TSDBClient.prototype.last = function (options, callback) {
         
     });
 };
+
+EHClient.prototype.mode = function () {
+    return ss.mode(values);
+};
+
+EHClient.prototype.variance = function () {
+    return ss.variance(values);
+};
+
+EHClient.prototype.standard_deviation = function () {
+    return ss.standard_deviation(values);
+};
+
+EHClient.prototype.median_absolute_deviation = function () {
+    return ss.median_absolute_deviation(values);
+};
+
+EHClient.prototype.harmonic_mean = function () {
+    return ss.harmonic_mean(values);
+};
+
+EHClient.prototype.root_mean_square = function () {
+    return ss.root_mean_square(values);
+};
+
+EHClient.prototype.sample_variance = function () {
+    return ss.sample_variance(values);
+};
+
+EHClient.prototype.sample_skewness = function () {
+    return ss.sample_skewness(values);
+};
+
+
+
+
+
 
 
 

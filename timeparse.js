@@ -11,7 +11,8 @@ function Timeparse(timething) {
 			var timeparts = parts[1].split(":");
 			var seconds = timeparts[2].split("+");
 
-			console.log(seconds);
+			//console.log(dateparts);
+			//console.log(new Date(dateparts[0], dateparts[1]-1, dateparts[2], timeparts[0], timeparts[1], seconds[0]));
 
 			return new Date(dateparts[0], dateparts[1], dateparts[2], timeparts[0], timeparts[1], seconds[0]); 
 			
