@@ -427,8 +427,8 @@ EHClient.prototype.harmonic_mean = function () {
     return ss.harmonic_mean(values);
 };
 
-EHClient.prototype.root_mean_square = function () {
-    return ss.root_mean_square(values);
+EHClient.prototype.geometric_mean = function () {
+    return ss.geometric_mean(values);
 };
 
 EHClient.prototype.sample_variance = function () {
@@ -437,6 +437,14 @@ EHClient.prototype.sample_variance = function () {
 
 EHClient.prototype.sample_skewness = function () {
     return ss.sample_skewness(values);
+};
+
+EHClient.prototype.iqr = function () {
+    return ss.iqr(values);
+};
+
+EHClient.prototype.median_absolute_deviation = function () {
+    return ss.median_absolute_deviation(values);
 };
 
 EHClient.prototype.line = function (pt) {

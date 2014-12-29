@@ -4,9 +4,9 @@ var tsdb = require('../');
 
 var tseh = {
   sid: '23432442',
-  from: '2014-06-06T00:47:00+00:00',
-  to: '2014-12-06T00:00:00+00:00',
-  period: 'day',
+  from: '2014-12-06T00:00:00+00:00',
+  to: '2014-12-06T12:00:00+00:00',
+  period: 'minute',
   func: 'avg'
 }
 
@@ -25,7 +25,10 @@ myeh.read(tseh, function(err, data) {
 		console.log("Mode: " + myeh.mode());
 		console.log("Variance: " + myeh.variance());
 		console.log("Standard Deviation: " + myeh.standard_deviation());
+		console.log("Geometric Mean: " + myeh.geometric_mean());
 		console.log("Harmonic Mean: " + myeh.harmonic_mean());
+		console.log("Interquartile Range: " + myeh.iqr());
+		console.log("Median Absolute Deviation: " + myeh.median_absolute_deviation());
 	} else {
 		console.log("Error: " + err)
 	}
